@@ -1,6 +1,6 @@
 # 🔐 SecureFL — Secure Federated Learning with Anomaly Detection & SOC Dashboard
 
-> A final-year project implementing a **privacy-preserving federated learning system** with real-time **Byzantine attack detection**, **trust scoring**, and a live **SOC monitoring dashboard**.
+> 
 
 ---
 
@@ -245,12 +245,6 @@ The system tracks the following metrics per round, displayed live on the dashboa
 - [ ] Deploy backend and dashboard with Docker Compose
 
 ---
-
-## Author
-
-**Maida Maryam, Bisma Amjad and Laiba Iqbal** — Bahria University, Final Year Project (2026)
-
-> Built as a final year project exploring the security of federated learning systems against Byzantine clients.
 
 ---
 

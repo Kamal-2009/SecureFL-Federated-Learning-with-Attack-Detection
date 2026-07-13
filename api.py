@@ -17,9 +17,8 @@ app.add_middleware(
 )
 
 LOG_FILE = "logs.json"
-
 # -------------------------------
-# HELPER FUNCTION
+# HELPER FUNCTIONS
 # -------------------------------
 def read_logs():
     if not os.path.exists(LOG_FILE):

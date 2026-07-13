@@ -1,4 +1,4 @@
-import flwr as fl
+import flwr as flsource 
 import torch
 import numpy as np
 from model import SimpleModel
