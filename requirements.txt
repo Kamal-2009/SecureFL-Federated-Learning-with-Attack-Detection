@@ -1,0 +1,21 @@
+# ========================================
+# SecureFL — Python Dependencies
+# ========================================
+
+# Federated Learning
+flwr
+
+# Deep Learning
+torch
+
+# Machine Learning & Anomaly Detection
+scikit-learn
+numpy
+pandas
+
+# Backend API
+fastapi
+uvicorn
+
+# Utilities (standard library — no install needed)
+# json, os — built-in
