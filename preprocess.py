@@ -8,7 +8,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 # 1. LOAD DATA (ROBUST)
 # -------------------------------
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_PATH = os.path.join(BASE_DIR, "data", "final_merged_dataset_updated.csv")
+DATA_PATH = os.path.join(BASE_DIR, "data", "MPDD.csv")
 
 df = pd.read_csv(DATA_PATH, encoding="latin-1", low_memory=False)
 
@@ -20,46 +20,45 @@ print("Columns:", df.columns.tolist())
 # 2. CLEAN DATA
 # -------------------------------
 
-# Drop useless columns
-df = df.drop(columns=["Unnamed: 13"], errors="ignore")
+# Normalize column names
+df.columns = df.columns.str.strip().str.lower()
+
+if "correct" in df.columns:
+    label_map = {
+        "true": 1,
+        "false": 0,
+        "1": 1,
+        "0": 0,
+        "correct": 1,
+        "incorrect": 0,
+        "yes": 1,
+        "no": 0
+    }
+    df["label"] = df["correct"].astype(str).str.lower().str.strip().map(label_map)
+elif "ismalicious" in df.columns:
+    df["label"] = df["ismalicious"].astype(int)
+else:
+    raise ValueError("No supported label column found")
 
 # Keep only required columns
-df = df[["prompt", "correct"]]
+df = df[["prompt", "label"]]
 
 # Drop missing
 df = df.dropna()
 
 print("\n🔍 BEFORE label cleaning:")
-print(df["correct"].unique()[:20])
+print(df["label"].unique()[:20])
 
 # -------------------------------
 # 3. FIX LABELS (CRITICAL)
 # -------------------------------
 
-# Normalize labels
-df["correct"] = df["correct"].astype(str).str.lower().str.strip()
-
-label_map = {
-    "true": 1,
-    "false": 0,
-    "1": 1,
-    "0": 0,
-    "correct": 1,
-    "incorrect": 0,
-    "yes": 1,
-    "no": 0
-}
-
-df["correct"] = df["correct"].map(label_map)
-
-# Drop invalid rows
-df = df.dropna()
-
 # Convert to int
-df["correct"] = df["correct"].astype(int)
+df = df.dropna(subset=["label"])
+df["label"] = df["label"].astype(int)
 
 print("\n✅ AFTER label cleaning:")
-print(df["correct"].value_counts())
+print(df["label"].value_counts())
 
 # -------------------------------
 # 4. CLEAN TEXT
@@ -82,7 +81,7 @@ vectorizer = TfidfVectorizer(
 )
 
 X = vectorizer.fit_transform(df["prompt"]).toarray()
-y = df["correct"].values
+y = df["label"].values
 
 print("\n✅ TF-IDF Completed")
 print("Feature shape:", X.shape)
