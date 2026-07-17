@@ -1,253 +1,693 @@
-# 🔐 SecureFL — Secure Federated Learning with Anomaly Detection & SOC Dashboard
+# 🔐 SecureFL — Secure Federated Learning with Byzantine Attack Detection & SOC Dashboard
 
-> 
+> A privacy-preserving Federated Learning framework that detects malicious clients using anomaly detection, trust scoring, and rollback protection while providing real-time visibility through a Security Operations Center (SOC) dashboard.
 
----
-
-## 📌 Table of Contents
-
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-  - [Backend Setup](#backend-setup)
-  - [Client Setup](#client-setup)
-  - [Dashboard Setup](#dashboard-setup)
-- [How It Works](#how-it-works)
-- [Metrics & Evaluation](#metrics--evaluation)
-- [Screenshots](#screenshots)
-- [Future Work](#future-work)
-- [Author](#author)
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-DeepLearning-red)
+![Flower](https://img.shields.io/badge/Flower-FederatedLearning-green)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-success)
+![Next.js](https://img.shields.io/badge/Next.js-Dashboard-black)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
 
-## Overview
+# 📑 Table of Contents
 
-**SecureFL** is a federated learning framework designed to detect and mitigate **poisoning attacks** from malicious clients without compromising the privacy of honest participants. The system uses a custom aggregation strategy (`SecureFedAvg`) built on top of [Flower (flwr)](https://flower.dev/) that continuously monitors client model updates for suspicious behavior.
-
-A real-time **SOC (Security Operations Center) Dashboard** built with Next.js displays live trust scores, security alerts, training metrics, and attack success rates — giving operators full visibility into the health of the federated training process.
-
-**Ideal for:** Researchers, students, and engineers exploring the intersection of **federated learning**, **adversarial ML**, and **distributed system security**.
+* Overview
+* Motivation
+* Key Features
+* Architecture
+* Dataset
+* Model Architecture
+* Threat Model
+* Tech Stack
+* Project Structure
+* Dependency Management
+* Installation
+* Running the Project
+* API Endpoints
+* Detection Pipeline
+* Trust Management
+* Evaluation Metrics
+* Dashboard Features
+* Results
+* Future Improvements
+* Screenshots
+* Author
 
 ---
 
-## Key Features
+# 🎯 Overview
 
-- 🛡️ **Byzantine Attack Detection** — Identifies malicious clients injecting poisoned gradients using a multi-signal approach
-- 📐 **Cosine Similarity Analysis** — Compares each client's model update against the global average to detect divergence
-- 🌲 **Isolation Forest Anomaly Detection** — ML-based outlier detection on flattened model weight vectors
-- 📊 **Z-Score History Smoothing** — Tracks each client's anomaly score over the last 3 rounds for stable detection
-- 🔒 **Trust Manager** — Dynamically adjusts per-client trust scores; automatically blocks clients falling below threshold
-- 🔄 **Rollback Protection** — Skips aggregation rounds if the majority of clients are flagged as suspicious
-- 📡 **FastAPI Backend** — Serves real-time alerts, trust scores, and training metrics to the dashboard
-- 🖥️ **SOC Dashboard (Next.js)** — Live dark-mode dashboard with charts for accuracy, F1, precision, recall, and ASR
+SecureFL is a cybersecurity-focused Federated Learning framework designed to defend against malicious participants attempting to poison the global model.
+
+Traditional Federated Learning systems assume clients behave honestly. In real-world deployments, compromised devices may intentionally upload manipulated model updates to degrade model performance or influence predictions.
+
+SecureFL introduces:
+
+* Multi-layer anomaly detection
+* Dynamic trust management
+* Automatic attacker blocking
+* Aggregation rollback protection
+* Real-time SOC monitoring dashboard
+
+The framework enables secure collaborative machine learning without requiring clients to share raw data.
 
 ---
 
-## Architecture
+# 🚀 Motivation
 
+Federated Learning is increasingly used in:
+
+* Healthcare
+* Finance
+* Mobile devices
+* IoT networks
+* Smart cities
+* Cybersecurity systems
+
+However, these environments are vulnerable to:
+
+* Model poisoning
+* Byzantine attacks
+* Data poisoning
+* Backdoor attacks
+
+SecureFL was developed to explore practical defense mechanisms against such threats while maintaining privacy and scalability.
+
+---
+
+# ✨ Key Features
+
+### 🛡 Byzantine Client Detection
+
+Identifies malicious clients attempting to manipulate the global model.
+
+### 📐 Cosine Similarity Monitoring
+
+Measures divergence between client updates and the global model.
+
+### 🌲 Isolation Forest Detection
+
+Machine-learning based anomaly detection on model weight updates.
+
+### 📊 Historical Z-Score Analysis
+
+Smooths detection results over multiple rounds to reduce false positives.
+
+### 🔒 Dynamic Trust Scoring
+
+Assigns and updates trust values for each client.
+
+### 🚫 Automatic Client Blocking
+
+Clients falling below trust thresholds are excluded.
+
+### 🔄 Rollback Protection
+
+Aggregation rounds are skipped if the majority of participants appear compromised.
+
+### 📡 FastAPI Backend
+
+Provides real-time security telemetry and model metrics.
+
+### 🖥 SOC Dashboard
+
+Interactive monitoring interface built using Next.js and TypeScript.
+
+---
+
+# 🏗 Architecture
+
+```text
+                         ┌───────────────────────┐
+                         │     Flower Server     │
+                         │    SecureFedAvg       │
+                         └──────────┬────────────┘
+                                    │
+             ┌──────────────────────┼──────────────────────┐
+             │                      │                      │
+             ▼                      ▼                      ▼
+
+     Cosine Similarity      Isolation Forest      Z-Score History
+         Analysis           Anomaly Detector        Smoothing
+
+             └──────────────────────┼──────────────────────┘
+                                    │
+                                    ▼
+
+                           Trust Manager
+
+                                    │
+                                    ▼
+
+                              logs.json
+
+                                    │
+                                    ▼
+
+                          FastAPI Backend
+
+                                    │
+                                    ▼
+
+                        Next.js SOC Dashboard
+
+
+Clients:
+client1  client2  client3  client4  attacker
 ```
-┌─────────────────────────────────────────────────────┐
-│                    FL Server (Flower)                │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────┐  │
-│  │ Cosine Sim   │  │  Isolation   │  │  Z-Score  │  │
-│  │  Analysis    │  │   Forest     │  │ Smoothing │  │
-│  └──────┬───────┘  └──────┬───────┘  └─────┬─────┘  │
-│         └─────────────────┼────────────────┘        │
-│                    ┌──────▼──────┐                   │
-│                    │Trust Manager│                   │
-│                    │(Block/Allow)│                   │
-│                    └──────┬──────┘                   │
-│                    ┌──────▼──────┐                   │
-│                    │  logs.json  │                   │
-│                    └──────┬──────┘                   │
-└───────────────────────────┼─────────────────────────┘
-                            │
-                   ┌────────▼────────┐
-                   │  FastAPI (8000) │
-                   └────────┬────────┘
-                            │
-                   ┌────────▼────────┐
-                   │  Next.js SOC    │
-                   │   Dashboard     │
-                   └─────────────────┘
 
-Clients: client1, client2, client3, client4, attacker
+---
+
+# 📂 Dataset
+
+SecureFL uses a phishing and malicious prompt classification dataset.
+
+The dataset contains:
+
+* Legitimate prompts
+* Malicious prompts
+* Prompt injection examples
+* Security-related text samples
+
+## Data Processing Pipeline
+
+```text
+Raw Dataset
+      │
+      ▼
+Text Cleaning
+      │
+      ▼
+TF-IDF Vectorization
+      │
+      ▼
+5000-Dimensional Features
+      │
+      ▼
+Client Partitioning
+      │
+      ▼
+Federated Training
+```
+
+## Feature Engineering
+
+TF-IDF Vectorizer:
+
+```python
+max_features=5000
+```
+
+Generated files:
+
+```text
+data/
+└── processed/
+    ├── client1.npz
+    ├── client2.npz
+    ├── client3.npz
+    ├── client4.npz
+    └── attacker.npz
+```
+
+## Privacy Preservation
+
+Clients never share:
+
+* Raw text
+* Original dataset
+* Personal data
+
+Only model parameters are transmitted.
+
+---
+
+# 🧠 Model Architecture
+
+SecureFL uses a lightweight PyTorch classifier.
+
+```text
+Input Layer
+(5000 Features)
+        │
+        ▼
+Linear(5000 → 256)
+        │
+      ReLU
+        │
+        ▼
+Linear(256 → 128)
+        │
+      ReLU
+        │
+        ▼
+Linear(128 → 2)
+        │
+     Softmax
+```
+
+## Training Configuration
+
+| Parameter     | Value            |
+| ------------- | ---------------- |
+| Optimizer     | Adam             |
+| Loss Function | CrossEntropyLoss |
+| Features      | TF-IDF           |
+| Aggregation   | SecureFedAvg     |
+| Framework     | PyTorch          |
+
+---
+
+# ⚠ Threat Model
+
+SecureFL focuses on detecting:
+
+## Byzantine Attacks
+
+Clients send arbitrary model updates.
+
+## Model Poisoning
+
+Malicious updates attempt to corrupt the global model.
+
+## Gradient Poisoning
+
+Attackers manipulate gradients before transmission.
+
+## Backdoor Injection
+
+Attempts to introduce hidden behaviors.
+
+---
+
+# 🛡 Detection Pipeline
+
+Each round passes through multiple security checks.
+
+## Layer 1 — Cosine Similarity
+
+Measures update similarity.
+
+```text
+Low similarity → Suspicious
 ```
 
 ---
 
-## Tech Stack
+## Layer 2 — Isolation Forest
 
-| Layer | Technology |
-|---|---|
-| Federated Learning | [Flower (flwr)](https://flower.dev/) |
-| Deep Learning | PyTorch |
-| Anomaly Detection | scikit-learn (IsolationForest) |
-| Backend API | FastAPI + Uvicorn |
-| Dashboard | Next.js 14 + TypeScript + Tailwind CSS |
-| Charts | Recharts |
-| Data Processing | pandas, NumPy, TF-IDF (scikit-learn) |
+Detects abnormal weight distributions.
+
+```python
+IsolationForest()
+```
+
+Prediction:
+
+```text
+1   = Normal
+-1  = Anomaly
+```
 
 ---
 
-## Project Structure
+## Layer 3 — Z-Score History
 
+Tracks client behavior over previous rounds.
+
+```text
+Average Z-score < Threshold
 ```
-securefl-project/
+
+Triggers anomaly flag.
+
+---
+
+# 🔒 Trust Management
+
+Each client starts with:
+
+```text
+Trust = 1.0
+```
+
+### Suspicious Behavior
+
+```text
+trust -= 0.5
+```
+
+### Normal Behavior
+
+```text
+trust += 0.05
+```
+
+### Block Threshold
+
+```text
+trust < 0.30
+```
+
+Client becomes:
+
+```text
+BLOCKED
+```
+
+---
+
+# 🔄 Rollback Protection
+
+If:
+
+```text
+Suspicious Clients > 50%
+```
+
+The aggregation round is skipped.
+
+This prevents poisoned updates from entering the global model.
+
+---
+
+# 🧰 Tech Stack
+
+| Layer               | Technology       |
+| ------------------- | ---------------- |
+| Federated Learning  | Flower           |
+| Deep Learning       | PyTorch          |
+| Anomaly Detection   | Isolation Forest |
+| Backend             | FastAPI          |
+| Server              | Uvicorn          |
+| Dashboard           | Next.js          |
+| Language            | TypeScript       |
+| Styling             | TailwindCSS      |
+| Charts              | Recharts         |
+| Data Processing     | Pandas           |
+| Numerical Computing | NumPy            |
+
+---
+
+# 📁 Project Structure
+
+```text
+SecureFL/
+│
 ├── backend/
-│   ├── fl_server.py          # Core FL server with SecureFedAvg strategy
-│   ├── anomaly_detector.py   # IsolationForest + Z-score detection
-│   ├── security.py           # Cosine similarity computation
-│   ├── trust_manager.py      # Per-client trust scoring & blocking
-│   ├── api.py                # FastAPI endpoints (/alerts, /trust, /metrics)
-│   ├── preprocess.py         # Data cleaning & TF-IDF feature extraction
-│   └── train_local.py        # Local model training script
+│   ├── fl_server.py
+│   ├── api.py
+│   ├── anomaly_detector.py
+│   ├── security.py
+│   ├── trust_manager.py
+│   ├── preprocess.py
+│   ├── train_local.py
+│   └── requirements.txt
 │
 ├── clients/
-│   ├── client1.py – client4.py   # Honest federated learning clients
-│   ├── attacker.py               # Simulated Byzantine attacker client
-│   ├── model.py                  # Shared SimpleModel (PyTorch)
-│   └── utils.py                  # Shared utilities
+│   ├── client1.py
+│   ├── client2.py
+│   ├── client3.py
+│   ├── client4.py
+│   ├── attacker.py
+│   ├── model.py
+│   └── utils.py
 │
 ├── data/
-│   ├── final_merged_dataset_updated.csv   # Raw dataset (not tracked in git)
-│   └── processed/                         # Preprocessed .npz files (not tracked in git)
+│   ├── raw_dataset.csv
+│   └── processed/
 │
-└── soc-dashboard/                 # Next.js dashboard
-    ├── app/
-    │   ├── page.tsx               # Main dashboard (alerts, trust, metrics)
-    │   ├── clients/page.tsx       # Per-client trust & status view
-    │   ├── metrics/page.tsx       # Training metrics page
-    │   └── security/page.tsx      # Security events view
-    ├── components/
-    │   ├── Sidebar.tsx
-    │   ├── Header.tsx
-    │   ├── AlertBox.tsx
-    │   └── Card.tsx
-    └── lib/api.ts                 # API base config
+├── soc-dashboard/
+│   ├── app/
+│   ├── components/
+│   ├── public/
+│   ├── package.json
+│   ├── next.config.ts
+│   └── tsconfig.json
+│
+└── README.md
 ```
 
 ---
 
-## Getting Started
+# 📦 Dependency Management
 
-### Prerequisites
+## Backend
 
-- Python 3.10+
-- Node.js 18+
-- pip
+Install:
+
+```bash
+pip install -r requirements.txt
+```
+
+Generate:
+
+```bash
+pip freeze > requirements.txt
+```
+
+### Core Dependencies
+
+```text
+flwr
+torch
+scikit-learn
+numpy
+pandas
+fastapi
+uvicorn
+```
 
 ---
 
-### Backend Setup
+## Frontend
+
+Install:
 
 ```bash
-# 1. Navigate to the backend directory
-cd securefl-project/backend
+npm install
+```
 
-# 2. Install dependencies
-pip install flwr torch scikit-learn fastapi uvicorn pandas numpy
+### Core Dependencies
 
-# 3. Preprocess the dataset (generates .npz files for each client)
-python preprocess.py
+```text
+next
+react
+react-dom
+typescript
+axios
+recharts
+tailwindcss
+```
 
-# 4. Start the FL server
+---
+
+# ⚙ Installation
+
+## Clone Repository
+
+```bash
+git clone https://github.com/yourusername/SecureFL.git
+
+cd SecureFL
+```
+
+---
+
+# 🚀 Running the Project
+
+## Start Federated Server
+
+```bash
+cd backend
+
 python fl_server.py
 ```
 
 ---
 
-### Client Setup
-
-Open a separate terminal for each client:
+## Start FastAPI Backend
 
 ```bash
-cd securefl-project/clients
+cd backend
 
-# Start honest clients
+uvicorn api:app --reload
+```
+
+Runs on:
+
+```text
+http://localhost:8000
+```
+
+---
+
+## Start Clients
+
+```bash
+cd clients
+
 python client1.py
 python client2.py
 python client3.py
 python client4.py
+```
 
-# Optionally start the attacker to simulate Byzantine behavior
+Optional attacker:
+
+```bash
 python attacker.py
 ```
 
 ---
 
-### Dashboard Setup
+## Start Dashboard
 
 ```bash
-# 1. Start the FastAPI backend (in a separate terminal)
-cd securefl-project/backend
-uvicorn api:app --reload --port 8000
+cd soc-dashboard
 
-# 2. Install and run the Next.js dashboard
-cd securefl-project/soc-dashboard
 npm install
+
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the SOC dashboard.
+Runs on:
+
+```text
+http://localhost:3000
+```
 
 ---
 
-## How It Works
+# 🔌 API Endpoints
 
-### 1. Federated Training (`SecureFedAvg`)
-Each round, clients train locally and send model weight updates to the server. The server applies three layers of analysis before aggregation:
+| Endpoint     | Description         |
+| ------------ | ------------------- |
+| GET /alerts  | Security alerts     |
+| GET /trust   | Client trust scores |
+| GET /metrics | Training metrics    |
+| GET /health  | Backend status      |
 
-### 2. Multi-Signal Anomaly Detection
+Example:
 
-| Signal | Method | Flag Condition |
-|---|---|---|
-| Cosine Similarity | Pairwise similarity between all client updates | `avg_sim < threshold` |
-| Isolation Forest | Unsupervised outlier detection on flattened weights | Prediction = `-1` (anomaly) |
-| Z-Score History | Z-score of similarity over last 3 rounds | `avg_recent < -0.8` |
-
-A client is flagged as **suspicious** if *any* signal triggers.
-
-### 3. Trust Scoring
-- Each client starts with `trust = 1.0`
-- Suspicious behavior: `trust -= 0.5`
-- Normal behavior: `trust += 0.05`
-- Clients with `trust < 0.3` are **blocked** from contributing
-
-### 4. Rollback Protection
-If more than 50% of clients in a round are flagged, the entire aggregation round is **skipped** to protect the global model.
+```bash
+curl http://localhost:8000/trust
+```
 
 ---
 
-## Metrics & Evaluation
+# 📊 Dashboard Features
 
-The system tracks the following metrics per round, displayed live on the dashboard:
+### Main Dashboard
 
-| Metric | Description |
-|---|---|
-| **Accuracy** | Weighted federated accuracy across honest clients |
-| **Precision** | Of all flagged clients, how many were actual attackers |
-| **Recall** | Of all attackers, how many were caught |
-| **F1 Score** | Harmonic mean of precision and recall |
-| **ASR** | Attack Success Rate — 0.0 means the attack was blocked |
+* Security overview
+* Active alerts
+* Trust monitoring
+
+### Clients View
+
+* Trust scores
+* Client status
+* Blocked clients
+
+### Metrics View
+
+* Accuracy
+* Precision
+* Recall
+* F1 Score
+* Attack Success Rate
+
+### Security Events
+
+* Alert history
+* Detection logs
+* Attack timelines
 
 ---
 
-## Future Work
+# 📈 Evaluation Metrics
 
-- [ ] Add differential privacy (DP-SGD) for gradient-level privacy
-- [ ] Support for heterogeneous data distributions (non-IID simulation)
-- [ ] Extend dashboard with historical trend analysis
-- [ ] Integrate model explainability for suspicious update visualization
-- [ ] Deploy backend and dashboard with Docker Compose
+| Metric    | Description               |
+| --------- | ------------------------- |
+| Accuracy  | Model correctness         |
+| Precision | Correct attack detections |
+| Recall    | Attack detection rate     |
+| F1 Score  | Precision-Recall balance  |
+| ASR       | Attack Success Rate       |
+
+Goal:
+
+```text
+High Accuracy
+High Precision
+High Recall
+Low ASR
+```
 
 ---
 
+# 🎯 Results
+
+SecureFL successfully:
+
+✅ Detected malicious clients
+
+✅ Reduced attack success rate
+
+✅ Maintained model accuracy
+
+✅ Prevented poisoned aggregations
+
+✅ Provided real-time security monitoring
+
 ---
 
-## Keywords
+# 🔮 Future Improvements
 
-`federated learning` `secure aggregation` `Byzantine fault tolerance` `anomaly detection` `poisoning attack` `isolation forest` `cosine similarity` `trust scoring` `SOC dashboard` `Flower flwr` `PyTorch` `FastAPI` `Next.js` `cybersecurity` `distributed machine learning` `privacy-preserving ML`
+* Differential Privacy (DP-SGD)
+* Secure Aggregation Protocols
+* Blockchain-based Trust Management
+* Non-IID Dataset Support
+* Docker Deployment
+* Kubernetes Scaling
+* Explainable AI for Attack Detection
+* Historical Analytics Dashboard
+* Multi-Attacker Simulation
+
+---
+
+# 📸 Screenshots
+
+Add dashboard screenshots here.
+
+```text
+screenshots/
+├── dashboard.png
+├── clients.png
+├── metrics.png
+└── alerts.png
+```
+
+---
+
+# 👨‍💻 Author
+
+**Harpreet Singh**
+
+Mathematics and Computing Engineering
+Dr. B. R. Ambedkar National Institute of Technology, Jalandhar
+
+Interests:
+
+* Federated Learning
+* Cybersecurity
+* Distributed Systems
+* Artificial Intelligence
+* Privacy-Preserving Machine Learning
+
+---
+
+⭐ If you found this project useful, consider giving it a star on GitHub.
